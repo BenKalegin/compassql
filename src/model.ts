@@ -288,47 +288,47 @@ export class SpecQueryModel {
       // TODO(#226):
       // write toSpec() and toShorthand() in a way that prevents outputting inapplicable scale, sort, axis / legend
 
-    for (const prop of PROPERTIES) {
-      // if the property's a wildcard, return null
-      let encodingProperty = encQ[prop];
-      if (isWildcard(encodingProperty)) {
-        return null;
-      } else {
-        // all channels support this prop
-        const isSupportedByChannel = (!PROPERTY_SUPPORTED_CHANNELS[prop] || PROPERTY_SUPPORTED_CHANNELS[prop][encQ.channel as Channel]);
+      for (const prop of PROPERTIES) {
+        // if the property's a wildcard, return null
+        let encodingProperty = encQ[prop];
+        if (isWildcard(encodingProperty)) {
+          return null;
+        } else {
+          // all channels support this prop
+          const isSupportedByChannel = (!PROPERTY_SUPPORTED_CHANNELS[prop] || PROPERTY_SUPPORTED_CHANNELS[prop][encQ.channel as Channel]);
 
-        if (isSupportedByChannel) {
-          if (prop === Property.SCALE && isFieldQuery(encQ) && encQ.type === Type.ORDINAL) {
-            let fieldSchema = this._schema.fieldSchema(encQ.field as string);
-            let scale = encQ.scale;
-            let ordinalDomain = fieldSchema.ordinalDomain;
+          if (isSupportedByChannel) {
+            if (prop === Property.SCALE && isFieldQuery(encQ) && encQ.type === Type.ORDINAL) {
+              let fieldSchema = this._schema.fieldSchema(encQ.field as string);
+              let scale = encQ.scale;
+              let ordinalDomain = fieldSchema.ordinalDomain;
 
-            // we use ['domain'] accessor hack because Typescript can't infer between FlatQuery and Wildcard
-            if (scale && scale['domain'] && typeof(scale) === 'object') {
-                // use scale domain in encoding query if it's already set
-                fieldDef[Property.SCALE] = scale;
-            } else if (ordinalDomain) {
-              if (typeof(scale) !== 'object') {
-                // scale is undefined or equal to true, or false
-                fieldDef[Property.SCALE] = {domain: ordinalDomain};
-              } else {
-                // scale exists and is an object, but does not have domain nested prop
-                fieldDef[Property.SCALE] =  {...scale, domain: ordinalDomain};
+              // we use ['domain'] accessor hack because Typescript can't infer between FlatQuery and Wildcard
+              if (scale && scale['domain'] && typeof(scale) === 'object') {
+                  // use scale domain in encoding query if it's already set
+                  fieldDef[Property.SCALE] = scale;
+              } else if (ordinalDomain) {
+                if (typeof(scale) !== 'object') {
+                  // scale is undefined or equal to true, or false
+                  fieldDef[Property.SCALE] = {domain: ordinalDomain};
+                } else {
+                  // scale exists and is an object, but does not have domain nested prop
+                  fieldDef[Property.SCALE] =  {...scale, domain: ordinalDomain};
+                }
               }
+            } else if (encodingProperty !== undefined) {
+              fieldDef[prop] = encodingProperty;
             }
-          } else if (encodingProperty !== undefined) {
-            fieldDef[prop] = encodingProperty;
           }
         }
       }
-    }
 
-    if (fieldDef.bin === false) {
-      // exclude bin false
-      delete fieldDef.bin;
-    }
+      if (fieldDef.bin === false) {
+        // exclude bin false
+        delete fieldDef.bin;
+      }
 
-    encoding[encQ.channel as Channel] = fieldDef;
+      encoding[encQ.channel as Channel] = fieldDef;
     }
     return encoding;
   }
