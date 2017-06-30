@@ -290,7 +290,8 @@ export class SpecQueryModel {
 
     for (const prop of PROPERTIES) {
       // if the property's a wildcard, return null
-      if (isWildcard(encQ[prop])) {
+      let encodingProperty = encQ[prop];
+      if (isWildcard(encodingProperty)) {
         return null;
       } else {
         // all channels support this prop
@@ -298,35 +299,25 @@ export class SpecQueryModel {
 
         if (isSupportedByChannel) {
           if (prop === Property.SCALE && isFieldQuery(encQ) && encQ.type === Type.ORDINAL) {
-            let field = encQ.field;
-            let fieldSchema = this._schema.fieldSchema(field as string);
-            // encQ.scale is true or ScaleQuery
-            if (encQ.scale) {
-              // we use ['domain'] accessor hack because Typescript can't infer between FlatQuery and Wildcard
-              if (encQ[Property.SCALE]['domain'] && typeof(encQ.scale) === 'object') {
+            let fieldSchema = this._schema.fieldSchema(encQ.field as string);
+            let scale = encQ.scale;
+            let ordinalDomain = fieldSchema.ordinalDomain;
+
+            // we use ['domain'] accessor hack because Typescript can't infer between FlatQuery and Wildcard
+            if (scale && scale['domain'] && typeof(scale) === 'object') {
                 // use scale domain in encoding query if it's already set
-                fieldDef[Property.SCALE] = encQ.scale;
-              } else if (fieldSchema.ordinalDomain) {
-                // encQ.scale is a ScaleQuery
-                if (typeof(encQ.scale) === 'object') {
-                  fieldDef[Property.SCALE] = {
-                    ...encQ.scale,
-                    domain: fieldSchema.ordinalDomain
-                  };
-                } else {
-                  // encQ.scale = true
-                  fieldDef[Property.SCALE] = {domain: fieldSchema.ordinalDomain};
-                }
-              }
-            } else {
-              // encQ.scale is false or undefined
-              if (fieldSchema.ordinalDomain) {
-                fieldDef[Property.SCALE] = {domain: fieldSchema.ordinalDomain};
+                fieldDef[Property.SCALE] = scale;
+            } else if (ordinalDomain) {
+              if (typeof(scale) !== 'object') {
+                // scale is undefined or equal to true, or false
+                fieldDef[Property.SCALE] = {domain: ordinalDomain};
+              } else {
+                // scale exists and is an object, but does not have domain nested prop
+                fieldDef[Property.SCALE] =  {...scale, domain: ordinalDomain};
               }
             }
-          } else if (encQ[prop] !== undefined) {
-            // assign the property to the field def if it exists
-            fieldDef[prop] = encQ[prop];
+          } else if (encodingProperty !== undefined) {
+            fieldDef[prop] = encodingProperty;
           }
         }
       }
